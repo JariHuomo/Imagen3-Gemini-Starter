@@ -3,15 +3,8 @@
 @tailwind utilities;
 
 :root {
-  --background: #faf9f6;
-  --foreground: #171717;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #1a237e;
-    --foreground: #ededed;
-  }
+  --background: #1a237e;
+  --foreground: #ededed;
 }
 
 @layer base {
@@ -25,29 +18,26 @@
 
 @layer components {
   .card-container {
-    @apply relative rounded-xl overflow-hidden shadow-lg transition-all duration-300 hover:scale-[1.02] hover:shadow-xl;
+    @apply relative rounded-xl overflow-hidden shadow-lg transition-all duration-300 hover:scale-[1.02] hover:shadow-xl bg-black/30 border border-white/20;
   }
 
   .input-field {
-    @apply w-full p-4 border rounded-xl bg-white/10 border-white/20 backdrop-blur-sm 
+    @apply w-full p-4 border rounded-xl bg-black/30 border-white/20 backdrop-blur-sm 
            focus:ring-2 focus:ring-primary/50 focus:border-primary/50 
-           transition-all duration-300 text-foreground;
+           transition-all duration-300 text-white;
   }
 
   .input-field::placeholder {
-    @apply text-foreground opacity-50;
+    @apply text-white/50;
   }
 
   .select-field {
     @apply w-full p-4 border rounded-xl bg-black/30 border-white/20 backdrop-blur-sm focus:ring-2 focus:ring-primary/50 focus:border-primary/50 transition-all duration-300 text-white;
-    color: white;
-    /* Ensure text color is always white for better readability */
   }
 
   .select-field option {
     @apply bg-gray-800 text-white;
     background-color: #1f2937;
-    /* Ensuring dropdown options have a dark background */
   }
 
   .generate-button {
@@ -55,16 +45,16 @@
   }
 
   .modal-backdrop {
-    @apply fixed inset-0 bg-black/40 backdrop-blur-md flex items-center justify-center p-4 z-50;
+    @apply fixed inset-0 bg-black/70 backdrop-blur-md flex items-center justify-center p-4 z-50;
   }
 
   .modal-content {
-    @apply relative max-w-4xl max-h-[90vh] w-full rounded-2xl overflow-hidden shadow-2xl border border-white/20;
+    @apply relative max-w-4xl max-h-[90vh] w-full rounded-2xl overflow-hidden shadow-2xl border border-white/20 bg-gray-900;
   }
 
   /* Chat Styles */
   .chat-container {
-    @apply flex flex-col h-full;
+    @apply flex flex-col h-full bg-gray-900;
   }
 
   .chat-messages {
@@ -84,7 +74,7 @@
   }
 
   .tool-results {
-    @apply text-sm mt-2;
+    @apply text-sm mt-2 text-white/80;
   }
 
   .input-area {
@@ -96,7 +86,7 @@
   }
 
   .chat-input {
-    @apply flex-1 p-2 rounded-lg bg-white/5 border border-white/10 text-white placeholder-white/50;
+    @apply flex-1 p-2 rounded-lg bg-black/30 border border-white/10 text-white placeholder-white/50;
   }
 
   .chat-button {
@@ -118,7 +108,7 @@
 }
 
 ::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(0, 0, 0, 0.3);
   border-radius: 5px;
 }
 
