@@ -12,7 +12,6 @@ Welcome to this starter template for building awesome image generation applicati
 - **Aspect Ratio Control:** Select different aspect ratios (1:1, 3:4, 4:3, 9:16, 16:9) for your generated images.
 - **Image History & Management:** View a history of your generated images. Delete images you no longer need.
 - **Responsive Design:** Works beautifully on all screen sizes.
-- **Dark/Light Mode:** Adapts to your system's color scheme preference (thanks to the `globals.css` setup).
 - **Interactive Image Modal:** Click on generated images to view them in a full-screen modal with details.
 - **User-Friendly UI:** A clean and intuitive interface built with Tailwind CSS.
 - **Local Storage:** Your generated images are saved in your browser's local storage, so they persist between sessions.
