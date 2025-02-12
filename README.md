@@ -1,4 +1,4 @@
-# Good Vibes Google Imagen 3 & Gemini API Starter Template ✨
+# Vibe Coding Google Imagen 3 & Gemini API Starter Template ✨
 
 [![X Follow](https://img.shields.io/twitter/follow/jarimh1984?style=social)](https://x.com/jarimh1984)
 
