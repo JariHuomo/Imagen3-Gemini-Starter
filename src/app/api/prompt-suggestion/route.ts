@@ -6,19 +6,18 @@ import {
 } from "@google/generative-ai";
 
 const GEMINI_API_KEY = process.env.GOOGLE_AI_API_KEY;
-const GEMINI_MODEL_NAME = "gemini-2.0-flash"; // or "gemini-pro" for potentially better quality but slower/more expensive
-const MAX_PROMPT_LENGTH = 480; // Maximum token length
+const GEMINI_MODEL_NAME = "gemini-2.0-flash"; 
+const MAX_PROMPT_LENGTH = 480;
 
 // Simple function to estimate tokens (rough approximation)
 function estimateTokens(text: string): number {
-  // A very rough estimation: average English word is 4-5 characters
-  // Plus spaces between words. Using 4.5 as average word length
   return Math.ceil(text.length / 4.5);
 }
 
 async function generatePromptSuggestion(
   prompt: string,
-  styles: string[]
+  styles: string[],
+  promptMemory?: string[]
 ): Promise<string | null> {
   if (!GEMINI_API_KEY) {
     console.error("Gemini API key not configured.");
@@ -56,11 +55,26 @@ async function generatePromptSuggestion(
   const styleNames = styles
     .map((styleId) => {
       const styleTag = STYLE_TAGS.find((tag) => tag.id === styleId);
-      return styleTag ? styleTag.name : styleId; // Fallback to ID if name not found
+      return styleTag ? styleTag.name : styleId;
     })
     .join(", ");
 
+  // Add previous prompts context if available
+  let previousPromptsContext = "";
+  if (promptMemory && promptMemory.length > 0) {
+    previousPromptsContext = `
+Previous prompts in this batch:
+${promptMemory.map((item, i) => `${i + 1}. ${item}`).join("\n")}
+
+Based on the previous prompts above, create a DIFFERENT variation that maintains the core theme of "${prompt}" but explores a new aspect, perspective, or interpretation.
+`;
+  }
+
+  console.log("previousPromptsContext", promptMemory);
+
   const enhancedPromptInstructions = `Please enhance the following image prompt to be more effective for Google Imagen 3.
+
+${previousPromptsContext}
 
 A good starting point can be to think of subject, context, and style.
   
@@ -95,6 +109,23 @@ To create a more compelling and visually rich image, focus on these aspects:
         - Encourage more conceptual descriptions.
         - For abstract styles, suggest focusing on shapes, colors, textures, and composition (e.g., "geometric shapes", "fluid colors", "minimalist composition").
         - For special styles (Vintage, Cyberpunk, Gothic, Surrealism etc.), emphasize elements that define these styles (e.g., "vintage aesthetic with aged textures", "cyberpunk cityscape with neon lights", "gothic architecture with dark atmosphere", "surreal scene with dreamlike qualities").
+        
+    - For Traditional Art Movements:
+        - For Cubism: Consider fragmented perspectives, geometric forms, and multiple viewpoints.
+        - For Ukiyo-e: Think about flat color planes, bold outlines, and themes of everyday life or landscapes.
+        - For Renaissance: Suggest elements like classical themes, realistic human figures, perspective, and balanced composition.
+        - For Impressionism: Focus on light effects, visible brushstrokes, and emphasis on movement and atmosphere.
+        - For Expressionism: Exaggerate emotional impact, distortion, and intense colors.
+        - For Pointillism: Describe tiny, distinct dots of color that form patterns or images.
+        - For Art Nouveau: Include organic, flowing curves, ornamental elements, and natural forms.
+        - For Baroque: Focus on dramatic lighting, rich colors, and dynamic movement.
+        - For Romanticism: Emphasize emotion, nature, and the sublime.
+        
+    - For Special Modern Styles:
+        - For Magical Realism: Blend realistic elements with fantastical or magical components.
+        - For Avant-garde: Experiment with radical, experimental, or unconventional artistic approaches.
+        - For Bauhaus: Use geometric forms, minimalist design, and functional aesthetics.
+        - For Dada: Incorporate absurdity, irrationality, and rejection of traditional aesthetic standards.
 
 4. Descriptive Language Expansion:
     - Use more descriptive adjectives and adverbs to enhance every aspect of the prompt.
@@ -120,7 +151,6 @@ Instructions for Output:
 }
 
 const STYLE_TAGS = [
-  // Replicate STYLE_TAGS from page.tsx to have access here
   // Photography styles
   {
     id: "photo-realistic",
@@ -180,11 +210,26 @@ const STYLE_TAGS = [
   { id: "style-pop-art", name: "Pop Art", category: "Special" },
   { id: "style-gothic", name: "Gothic", category: "Special" },
   { id: "style-surreal", name: "Surrealism", category: "Special" },
+  // New Styles
+  { id: 'style-pointillism', name: 'Pointillism', category: 'Traditional Art' },
+  { id: 'style-expressionism', name: 'Expressionism', category: 'Traditional Art' },
+  { id: 'style-impressionism', name: 'Impressionism', category: 'Traditional Art' },
+  { id: 'style-dada', name: 'Dada', category: 'Abstract' },
+  { id: 'style-abstract', name: 'Abstract', category: 'Abstract' },
+  { id: 'style-renaissance', name: 'Renaissance', category: 'Traditional Art' },
+  { id: 'style-art-nouveau', name: 'Art Nouveau', category: 'Traditional Art' },
+  { id: 'style-magical-realism', name: 'Magical Realism', category: 'Special' },
+  { id: 'style-romanticism', name: 'Romanticism', category: 'Traditional Art' },
+  { id: 'style-ukiyo-e', name: 'Ukiyo-e', category: 'Traditional Art' },
+  { id: 'style-baroque', name: 'Baroque', category: 'Traditional Art' },
+  { id: 'style-avant-garde', name: 'Avant-garde', category: 'Special' },
+  { id: 'style-cubism', name: 'Cubism', category: 'Abstract' },
+  { id: 'style-bauhaus', name: 'Bauhaus', category: 'Design' },
 ];
 
 export async function POST(request: Request) {
   try {
-    const { prompt, styles } = await request.json();
+    const { prompt, styles, promptMemory } = await request.json();
 
     if (!prompt) {
       return NextResponse.json(
@@ -210,7 +255,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const suggestion = await generatePromptSuggestion(prompt, styles);
+    const suggestion = await generatePromptSuggestion(prompt, styles, promptMemory);
 
     if (!suggestion) {
       return NextResponse.json(

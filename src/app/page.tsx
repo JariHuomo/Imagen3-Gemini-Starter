@@ -1,10 +1,12 @@
 'use client';
+
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
-
 import ImageModal from './components/ImageModal';
 import DeleteConfirmationModal from './components/DeleteConfirmationModal';
-// Define the style tags interface and array interface
+import BatchProcessingModal from './components/BatchProcessingModal';
+
+// Define the style tags interface and array
 interface StyleTag {
   id: string;
   name: string;
@@ -50,6 +52,21 @@ const STYLE_TAGS: StyleTag[] = [
   { id: 'style-pop-art', name: 'Pop Art', category: 'Special' },
   { id: 'style-gothic', name: 'Gothic', category: 'Special' },
   { id: 'style-surreal', name: 'Surrealism', category: 'Special' },
+  // New Styles
+  { id: 'style-pointillism', name: 'Pointillism', category: 'Traditional Art' },
+  { id: 'style-expressionism', name: 'Expressionism', category: 'Traditional Art' },
+  { id: 'style-impressionism', name: 'Impressionism', category: 'Traditional Art' },
+  { id: 'style-dada', name: 'Dada', category: 'Abstract' },
+  { id: 'style-abstract', name: 'Abstract', category: 'Abstract' },
+  { id: 'style-renaissance', name: 'Renaissance', category: 'Traditional Art' },
+  { id: 'style-art-nouveau', name: 'Art Nouveau', category: 'Traditional Art' },
+  { id: 'style-magical-realism', name: 'Magical Realism', category: 'Special' },
+  { id: 'style-romanticism', name: 'Romanticism', category: 'Traditional Art' },
+  { id: 'style-ukiyo-e', name: 'Ukiyo-e', category: 'Traditional Art' },
+  { id: 'style-baroque', name: 'Baroque', category: 'Traditional Art' },
+  { id: 'style-avant-garde', name: 'Avant-garde', category: 'Special' },
+  { id: 'style-cubism', name: 'Cubism', category: 'Abstract' },
+  { id: 'style-bauhaus', name: 'Bauhaus', category: 'Design' },
 ];
 
 interface GeneratedImage {
@@ -59,6 +76,14 @@ interface GeneratedImage {
   timestamp: string;
   styles: string[];
   aspectRatio: string; // Add aspect ratio here
+}
+
+interface BatchResult {
+  styleId: string;
+  imageUrl: string;
+  improvedPrompt: string;
+  iterationId?: number; //Add iterationId as an optional parameter
+  error?: string;
 }
 
 // Aspect Ratio Options
@@ -101,6 +126,10 @@ export default function ImagenTest() {
   const [suggestedPrompt, setSuggestedPrompt] = useState<string | null>(null);
   const [isSuggestionVisible, setIsSuggestionVisible] = useState(false);
 
+  // New state for batch processing
+  const [isBatchModalOpen, setIsBatchModalOpen] = useState(false);
+  const [isBatchProcessing, setIsBatchProcessing] = useState(false);
+
   // useEffect to load existing images on component mount
   useEffect(() => {
     const loadExistingImages = async () => {
@@ -126,6 +155,7 @@ export default function ImagenTest() {
         setError('Failed to load existing images');
       }
     };
+
     loadExistingImages();
   }, []); // Empty dependency array to run only on mount
 
@@ -145,11 +175,7 @@ export default function ImagenTest() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          prompt,
-          styles: [selectedStyle],
-          aspectRatio
-        })
+        body: JSON.stringify({ prompt, styles: [selectedStyle], aspectRatio })
       });
 
       const data = await response.json();
@@ -199,7 +225,9 @@ export default function ImagenTest() {
     try {
       const response = await fetch('/api/prompt-suggestion', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json'
+        },
         body: JSON.stringify({ prompt, styles: [selectedStyle] }),
       });
 
@@ -208,6 +236,7 @@ export default function ImagenTest() {
       }
 
       const data = await response.json();
+
       if (data.error) {
         throw new Error(data.error);
       }
@@ -264,15 +293,40 @@ export default function ImagenTest() {
 
       // Update localStorage
       localStorage.setItem(LOCAL_STORAGE_IMAGES_KEY, JSON.stringify(updatedImages));
+
     } catch (error) {
       console.error('Error deleting image:', error);
       setError('Failed to delete image');
     }
   };
 
+
+  // New function to handle batch processing completion
+  const handleBatchComplete = (results: BatchResult[]) => {
+    // Process the results and add them to the images state
+    const newImages = results
+      .filter(result => !result.error) // Filter out errors
+      .map(result => ({
+        id: Date.now().toString() + '-' + result.styleId + '-' + (result.iterationId || '1'),
+        url: result.imageUrl,
+        prompt: result.improvedPrompt,
+        styles: [result.styleId],
+        timestamp: new Date().toLocaleString('en-GB'),
+        aspectRatio,
+      }));
+
+    // Update state with new images
+    const updatedImages = [...newImages, ...images];
+    setImages(updatedImages);
+
+    // Save to localStorage
+    localStorage.setItem(LOCAL_STORAGE_IMAGES_KEY, JSON.stringify(updatedImages));
+  };
+
   return (
     <main className="min-h-screen p-8 overflow-x-hidden">
       <div className="max-w-6xl mx-auto">
+
         {/* Title */}
         <h1 className="text-4xl md:text-6xl font-bold mb-12 text-center relative animate-float">
           <span className="bg-gradient-to-r from-primary via-secondary to-accent1 text-transparent bg-clip-text animate-gradient bg-[length:200%_200%]">
@@ -283,23 +337,25 @@ export default function ImagenTest() {
         {/* Input Section */}
         <div className="max-w-3xl mx-auto space-y-8 mb-12">
           <div className="p-6 rounded-2xl bg-white/5 backdrop-blur-md border border-white/20 shadow-xl space-y-4">
-            <div className="flex items-center space-x-2 mb-2"> {/* Container for input and button */}
+
+            <div className="flex items-center space-x-2 mb-2">
+              {/* Container for input and button */}
               <input
                 type="text"
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
                 placeholder="Describe your image..."
-                className="input-field flex-grow" // flex-grow to take available space
+                className="input-field flex-grow"
               />
               <button
                 onClick={handleGetPromptSuggestion}
                 disabled={isSuggestingPrompt || !prompt || !selectedStyle}
                 className="px-4 py-2 rounded-xl font-medium transition-all duration-300 bg-accent1 hover:bg-accent2 text-white font-bold disabled:opacity-50 disabled:cursor-not-allowed"
-                aria-label="Get Prompt Suggestion" // Accessibility label
+                aria-label="Get Prompt Suggestion"
               >
                 {isSuggestingPrompt ? (
                   <span className="flex items-center justify-center gap-2">
-                    <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" >
+                    <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                     </svg>
@@ -333,8 +389,12 @@ export default function ImagenTest() {
 
             {/* Aspect Ratio Selection */}
             <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-white/90"> Select Aspect Ratio: </h3>
-              <select value={aspectRatio} onChange={(e) => setAspectRatio(e.target.value)} className="select-field flex-1" >
+              <h3 className="text-lg font-semibold text-white/90">Select Aspect Ratio:</h3>
+              <select
+                value={aspectRatio}
+                onChange={(e) => setAspectRatio(e.target.value)}
+                className="select-field flex-1"
+              >
                 {ASPECT_RATIOS.map((ratio) => (
                   <option key={ratio} value={ratio}>
                     {ratio}
@@ -370,17 +430,27 @@ export default function ImagenTest() {
             >
               {loading ? (
                 <span className="flex items-center justify-center gap-2">
-                  <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24" >
+                  <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                   </svg>
-                  Generating Image...
                 </span>
               ) : (
                 'Generate Image'
               )}
             </button>
+
+            {/* Add Batch Processing Button */}
+            <button
+              onClick={() => setIsBatchModalOpen(true)}
+              disabled={!prompt || isBatchProcessing}
+              className="px-6 py-4 rounded-xl font-medium transition-all duration-300 bg-accent1 hover:bg-accent2 text-white font-bold disabled:opacity-50 disabled:cursor-not-allowed mt-4 w-full"
+            >
+              Batch Process All Styles
+            </button>
+
           </div>
+
           {error && (
             <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-center">
               {error}
@@ -405,9 +475,10 @@ export default function ImagenTest() {
                   sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                
+
                 {/* Action Buttons */}
                 <div className="absolute top-2 right-2 flex gap-2">
+
                   {/* Download Button */}
                   <a
                     href={image.url}
@@ -416,47 +487,30 @@ export default function ImagenTest() {
                     className="p-2 rounded-full bg-blue-500/80 hover:bg-blue-600/80 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10"
                     aria-label="Download image"
                   >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="h-5 w-5"
-                      viewBox="0 0 20 20"
-                      fill="currentColor"
-                    >
-                      <path
-                        fillRule="evenodd"
-                        d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z"
-                        clipRule="evenodd"
-                      />
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
                     </svg>
                   </a>
-                  
+
                   {/* Delete Button */}
                   <button
                     onClick={(e) => handleDeleteImage(image, e)}
                     className="p-2 rounded-full bg-red-500/80 hover:bg-red-600/80 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10"
                     aria-label="Delete image"
                   >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="h-5 w-5"
-                      viewBox="0 0 20 20"
-                      fill="currentColor"
-                    >
-                      <path
-                        fillRule="evenodd"
-                        d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z"
-                        clipRule="evenodd"
-                      />
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
                     </svg>
                   </button>
                 </div>
               </div>
+
               <div className="absolute bottom-0 left-0 right-0 p-4 transform translate-y-2 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-300">
                 <p className="text-sm text-white/90 line-clamp-2 mb-2">{image.prompt}</p>
                 <div className="flex flex-wrap gap-1">
                   {image.styles.map((styleId, index) => (
-                    <span 
-                      key={`${image.id}-${styleId}-${index}`} 
+                    <span
+                      key={`${image.id}-${styleId}-${index}`}
                       className="text-xs bg-white/20 px-2 py-0.5 rounded-full text-white/80"
                     >
                       {STYLE_TAGS.find((s) => s.id === styleId)?.name}
@@ -477,6 +531,16 @@ export default function ImagenTest() {
           onClose={() => setImageToDelete(null)}
           onConfirm={confirmDelete}
           imageName={imageToDelete?.prompt || ''}
+        />
+
+        {/* Batch Processing Modal */}
+        <BatchProcessingModal
+          isOpen={isBatchModalOpen}
+          onClose={() => setIsBatchModalOpen(false)}
+          prompt={prompt}
+          aspectRatio={aspectRatio}
+          styleTags={STYLE_TAGS}
+          onComplete={handleBatchComplete}
         />
 
       </div>
