@@ -5,6 +5,8 @@ import Image from 'next/image';
 import ImageModal from './components/ImageModal';
 import DeleteConfirmationModal from './components/DeleteConfirmationModal';
 import BatchProcessingModal from './components/BatchProcessingModal';
+import DeleteAllConfirmationModal from './components/DeleteAllConfirmationModal';
+import { nanoid } from 'nanoid';
 
 // Define the style tags interface and array
 interface StyleTag {
@@ -67,6 +69,30 @@ const STYLE_TAGS: StyleTag[] = [
   { id: 'style-avant-garde', name: 'Avant-garde', category: 'Special' },
   { id: 'style-cubism', name: 'Cubism', category: 'Abstract' },
   { id: 'style-bauhaus', name: 'Bauhaus', category: 'Design' },
+  
+  // App Icon Styles
+  { id: 'icon-flat', name: 'Flat Icon', category: 'App Icons' },
+  { id: 'icon-gradient', name: 'Gradient Icon', category: 'App Icons' },
+  { id: 'icon-3d', name: '3D Icon', category: 'App Icons' },
+  { id: 'icon-outlined', name: 'Outlined Icon', category: 'App Icons' },
+  { id: 'icon-isometric', name: 'Isometric Icon', category: 'App Icons' },
+  { id: 'icon-duotone', name: 'Duotone Icon', category: 'App Icons' },
+  { id: 'icon-minimalist', name: 'Minimalist Icon', category: 'App Icons' },
+  { id: 'icon-material', name: 'Material Design', category: 'App Icons' },
+  { id: 'icon-skeuomorphic', name: 'Skeuomorphic Icon', category: 'App Icons' },
+  { id: 'icon-neon', name: 'Neon Icon', category: 'App Icons' },
+
+  // Etsy-Style Illustrations
+  { id: 'etsy-watercolor', name: 'Watercolor Illustration', category: 'Etsy Illustrations' },
+  { id: 'etsy-handcrafted', name: 'Handcrafted Illustration', category: 'Etsy Illustrations' },
+  { id: 'etsy-vintage', name: 'Vintage Illustration', category: 'Etsy Illustrations' },
+  { id: 'etsy-botanical', name: 'Botanical Illustration', category: 'Etsy Illustrations' },
+  { id: 'etsy-folk', name: 'Folk Art Illustration', category: 'Etsy Illustrations' },
+  { id: 'etsy-whimsical', name: 'Whimsical Illustration', category: 'Etsy Illustrations' },
+  { id: 'etsy-rustic', name: 'Rustic Illustration', category: 'Etsy Illustrations' },
+  { id: 'etsy-cutpaper', name: 'Cut Paper Illustration', category: 'Etsy Illustrations' },
+  { id: 'etsy-lineart', name: 'Line Art Illustration', category: 'Etsy Illustrations' },
+  { id: 'etsy-handlettering', name: 'Hand-Lettering', category: 'Etsy Illustrations' },
 ];
 
 interface GeneratedImage {
@@ -129,6 +155,9 @@ export default function ImagenTest() {
   // New state for batch processing
   const [isBatchModalOpen, setIsBatchModalOpen] = useState(false);
   const [isBatchProcessing, setIsBatchProcessing] = useState(false);
+  
+  // New state for delete all confirmation modal
+  const [isDeleteAllModalOpen, setIsDeleteAllModalOpen] = useState(false);
 
   // useEffect to load existing images on component mount
   useEffect(() => {
@@ -184,7 +213,7 @@ export default function ImagenTest() {
       if (data.error) throw new Error(data.error);
 
       const newImage: GeneratedImage = {
-        id: Date.now().toString(),
+        id: nanoid(), // Use nanoid instead of Date.now().toString()
         url: data.url,
         prompt,
         styles: [selectedStyle],
@@ -307,7 +336,7 @@ export default function ImagenTest() {
     const newImages = results
       .filter(result => !result.error) // Filter out errors
       .map(result => ({
-        id: Date.now().toString() + '-' + result.styleId + '-' + (result.iterationId || '1'),
+        id: nanoid(), // Use nanoid for unique IDs
         url: result.imageUrl,
         prompt: result.improvedPrompt,
         styles: [result.styleId],
@@ -321,6 +350,36 @@ export default function ImagenTest() {
 
     // Save to localStorage
     localStorage.setItem(LOCAL_STORAGE_IMAGES_KEY, JSON.stringify(updatedImages));
+    
+    // Update batch processing state
+    setIsBatchProcessing(false);
+  };
+  
+  // New function to clear all images
+  const clearAllImages = async () => {
+    try {
+      setIsBatchProcessing(true);
+      
+      // Clear images from the UI state
+      setImages([]);
+
+      // Clear images from localStorage
+      localStorage.removeItem(LOCAL_STORAGE_IMAGES_KEY);
+
+      // Call API to delete all images from the server
+      const response = await fetch('/api/delete-all-imagen-images', {
+        method: 'POST',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete all images from the server.');
+      }
+    } catch (error) {
+      console.error('Error clearing all images:', error);
+      setError('Failed to clear all images.');
+    } finally {
+      setIsBatchProcessing(false);
+    }
   };
 
   return (
@@ -401,6 +460,11 @@ export default function ImagenTest() {
                   </option>
                 ))}
               </select>
+              {selectedStyle.startsWith('icon-') && (
+                <p className="text-sm text-white/70 mt-1">
+                  Note: For app icons, 1:1 aspect ratio is recommended for best results.
+                </p>
+              )}
             </div>
 
             {/* Style Selection */}
@@ -442,11 +506,23 @@ export default function ImagenTest() {
 
             {/* Add Batch Processing Button */}
             <button
-              onClick={() => setIsBatchModalOpen(true)}
+              onClick={() => {
+                setIsBatchModalOpen(true);
+                setIsBatchProcessing(true);
+              }}
               disabled={!prompt || isBatchProcessing}
               className="px-6 py-4 rounded-xl font-medium transition-all duration-300 bg-accent1 hover:bg-accent2 text-white font-bold disabled:opacity-50 disabled:cursor-not-allowed mt-4 w-full"
             >
               Batch Process All Styles
+            </button>
+            
+            {/* Add Clear All Images Button */}
+            <button
+              onClick={() => setIsDeleteAllModalOpen(true)}
+              disabled={images.length === 0 || isBatchProcessing}
+              className="px-6 py-4 rounded-xl font-medium transition-all duration-300 bg-red-500 hover:bg-red-600 text-white font-bold disabled:opacity-50 disabled:cursor-not-allowed mt-4 w-full"
+            >
+              Clear All Images
             </button>
 
           </div>
@@ -541,6 +617,13 @@ export default function ImagenTest() {
           aspectRatio={aspectRatio}
           styleTags={STYLE_TAGS}
           onComplete={handleBatchComplete}
+        />
+
+        {/* Delete All Confirmation Modal */}
+        <DeleteAllConfirmationModal
+          isOpen={isDeleteAllModalOpen}
+          onClose={() => setIsDeleteAllModalOpen(false)}
+          onConfirm={clearAllImages}
         />
 
       </div>

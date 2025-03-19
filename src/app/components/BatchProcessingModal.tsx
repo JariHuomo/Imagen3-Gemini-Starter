@@ -35,9 +35,7 @@ export default function BatchProcessingModal({
 }: BatchProcessingModalProps) {
   const [results, setResults] = useState<BatchResult[]>([]);
   const [processing, setProcessing] = useState(false);
-  const [currentStyleIndex, setCurrentStyleIndex] = useState(-1);
   const [error, setError] = useState<string | null>(null);
-  const [processedCount, setProcessedCount] = useState(0);
   const [selectedStyles, setSelectedStyles] = useState<string[]>([]);
   const [iterations, setIterations] = useState<number>(1); // New state for iterations
 
@@ -46,9 +44,7 @@ export default function BatchProcessingModal({
     if (isOpen) {
       setResults([]);
       setProcessing(false);
-      setCurrentStyleIndex(-1);
       setError(null);
-      setProcessedCount(0);
       setIterations(1); // Reset iterations to 1
       // Default to select all styles
       setSelectedStyles(styleTags.map(tag => tag.id));
@@ -87,7 +83,6 @@ export default function BatchProcessingModal({
     setProcessing(true);
     setResults([]);
     setError(null);
-    setProcessedCount(0);
 
     try {
       const response = await fetch('/api/batch-imagen-generate', {
@@ -158,7 +153,7 @@ export default function BatchProcessingModal({
                 {selectedStyles.length === styleTags.length ? 'Deselect All' : 'Select All'}
               </button>
             </div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
               {styleTags.map((style) => (
                 <button
                   key={style.id}

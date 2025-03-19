@@ -11,7 +11,7 @@ export default {
       colors: {
         background: "var(--background)",
         foreground: "var(--foreground)",
-        primary: "#f44336", // Vibrant Red
+        primary: "#4caf50", // Fresh Green
         secondary: "#ffeb3b", // Bright Yellow
         accent1: "#4caf50", // Fresh Green
         accent2: "#2196f3", // Sky Blue
